@@ -1,0 +1,9 @@
+1/2 horsepower, 3450 rpm
+flow   head   efficiency
+gpm     ft       %
+42  10  10
+39  20  35
+36  30  50
+32  40  55
+28  50  40
+15  70  20
