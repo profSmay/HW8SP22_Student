@@ -33,14 +33,18 @@ class UnitConverter():
     kg_to_lbf = 1/lbf_to_kg
     lbf_to_N = lbf_to_kg * g_SI
     pa_to_psi = (1 / (lbf_to_N)) * in2_to_m2
+    kpa_to_psi = 1000*pa_to_psi
+    psi_to_pa = 1/pa_to_psi
+    psi_to_kpa = psi_to_pa/1000
     bar_to_psi = pa_to_psi*100000
-
+    deltaK_to_deltaR = 9/5*(1.0)
     # Energy
     BTU_to_J=1055.06
     kJ_to_BTU = 1000/BTU_to_J
     BTU_to_kJ = 1/kJ_to_BTU
     kJperkg_to_BTUperlb = kJ_to_BTU/kg_to_lbf
     m3perkg_to_ft3perlb = m3_to_ft3/kg_to_lbf
+    kJperkgK_to_BTUperlbR = kJperkg_to_BTUperlb/deltaK_to_deltaR
 
     @classmethod  # a classmethod can be used directly from a class without needing to instantiate an object
     def viscosityEnglishToSI(cls, mu, toSI=True):
@@ -120,7 +124,7 @@ class UnitConverter():
         return cls.C_to_F(T-273.15)+459.67
 
 class SatPropsIsobar():
-    def __init__(self, P):
+    def __init__(self, P, SI=True):
         """
         Sets saturation properties for a given isobar
         :param P:  in kPa
@@ -136,7 +140,7 @@ class SatPropsIsobar():
         self.vg=float(griddata(pscol,vgcol,self.PSat,method = 'cubic'))
         # for doing unit conversions
         self.UC=UnitConverter()
-        self.getTextOutput()
+        self.getTextOutput(SI=SI)
 
     def getTextOutput(self, SI=True):
         """
@@ -152,8 +156,8 @@ class SatPropsIsobar():
             hf=self.hf*self.UC.kJperkg_to_BTUperlb
             hg=self.hg*self.UC.kJperkg_to_BTUperlb
             HUnits="BTU/lb"
-            sf=self.sf*self.UC.kJperkg_to_BTUperlb/self.UC.K_to_R(T=1)
-            sg=self.sg*self.UC.kJperkg_to_BTUperlb/self.UC.K_to_R(T=1)
+            sf=self.sf*self.UC.kJperkgK_to_BTUperlbR
+            sg=self.sg*self.UC.kJperkgK_to_BTUperlbR
             SUnits="BTU/lb*R"
             vf=self.vf*self.UC.m3perkg_to_ft3perlb
             vg=self.vg*self.UC.m3perkg_to_ft3perlb
