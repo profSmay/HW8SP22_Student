@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Rankine_Gui.ui'
+# Form implementation generated from reading ui file 'Rankine_GUI.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -11,7 +11,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(1021, 909)
+        Form.resize(1021, 1405)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Form.sizePolicy().hasHeightForWidth())
+        Form.setSizePolicy(sizePolicy)
         self.mainVerticalLayout = QtWidgets.QVBoxLayout(Form)
         self.mainVerticalLayout.setObjectName("mainVerticalLayout")
         self.widgetsVerticalLayout = QtWidgets.QVBoxLayout()
@@ -506,6 +511,23 @@ class Ui_Form(object):
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
+        Form.setTabOrder(self.rb_SI, self.rb_English)
+        Form.setTabOrder(self.rb_English, self.le_PHigh)
+        Form.setTabOrder(self.le_PHigh, self.le_PLow)
+        Form.setTabOrder(self.le_PLow, self.rdo_Quality)
+        Form.setTabOrder(self.rdo_Quality, self.rdo_THigh)
+        Form.setTabOrder(self.rdo_THigh, self.le_TurbineInletCondition)
+        Form.setTabOrder(self.le_TurbineInletCondition, self.le_TurbineEff)
+        Form.setTabOrder(self.le_TurbineEff, self.btn_Calculate)
+        Form.setTabOrder(self.btn_Calculate, self.le_H1)
+        Form.setTabOrder(self.le_H1, self.le_H2)
+        Form.setTabOrder(self.le_H2, self.le_H3)
+        Form.setTabOrder(self.le_H3, self.le_H4)
+        Form.setTabOrder(self.le_H4, self.le_TurbineWork)
+        Form.setTabOrder(self.le_TurbineWork, self.le_PumpWork)
+        Form.setTabOrder(self.le_PumpWork, self.le_HeatAdded)
+        Form.setTabOrder(self.le_HeatAdded, self.le_Efficiency)
+        Form.setTabOrder(self.le_Efficiency, self.label_2)
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate

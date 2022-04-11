@@ -1,5 +1,6 @@
 from Calc_state import Steam_SI as steam
 from Calc_state import SatPropsIsobar
+from Calc_state import UnitConverter as UC
 import numpy as np
 from matplotlib import pyplot as plt
 #these imports are necessary for drawing a matplot lib graph on my GUI
@@ -33,6 +34,7 @@ class rankineModel():
         self.state2=None
         self.state3=None
         self.state4=None
+        self.SI=True  # If False, convert pressures from psi to kPa and T from F to C for inputs
 
 class rankineController():
     def __init__(self, *args):
@@ -56,13 +58,22 @@ class rankineController():
         le_PHigh, le_PLow, rdo_Quality, le_TurbineInletCondition, le_TurbineEff=args[0]
 
         #update the model
-        self.Model.p_high = float(le_PHigh.text()) * 100  # get the high pressure isobar in kPa
-        self.Model.p_low = float(le_PLow.text()) * 100  # get the low pressure isobar in kPa
-        self.Model.t_high = None if rdo_Quality.isChecked() else float(le_TurbineInletCondition.text())
+        #$UNITS$ since inputs can be SI or English, I need to convert to SI here for pressures and temperature
+        PCF=100 if self.Model.SI else UC.psi_to_kpa #$UNITS$
+        self.Model.p_high = float(le_PHigh.text()) * PCF  # get the high pressure isobar in kPa
+        self.Model.p_low = float(le_PLow.text()) * PCF  # get the low pressure isobar in kPa
+        T=float(le_TurbineInletCondition.text()) #$UNITS$
+        self.Model.t_high = None if rdo_Quality.isChecked() else (T if self.Model.SI else UC.F_to_C(T)) #$UNITS$
         self.Model.turbine_eff = float(le_TurbineEff.text())
         #do the calculation
         self.calc_efficiency()
         self.updateView(self.Widgets)
+
+    def updateUnits(self, W, OW, SI=True):
+        #Switching units should not change the model, but should update the view
+        self.Model.SI=SI
+        self.View.updateUnits(W,OW,Model=self.Model)
+        pass
 
     def calc_efficiency(self):
         # calculate the 4 states
@@ -151,23 +162,62 @@ class rankineView():
     def outputToGUI(self, *args, Model=None):
         #unpack the args
         le_H1, le_H2, le_H3, le_H4, le_TurbineWork, le_PumpWork, le_HeatAdded, le_Efficiency, lbl_SatPropHigh, lbl_SatPropLow, ax, canvas = args[0]
-
+        if Model.state1 is None:  # means the cycle has not been evaluated yet
+            return
         #update the line edits and labels
-        le_H1.setText("{:0.2f}".format(Model.state1.h))
-        le_H2.setText("{:0.2f}".format(Model.state2.h))
-        le_H3.setText("{:0.2f}".format(Model.state3.h))
-        le_H4.setText("{:0.2f}".format(Model.state4.h))
-        le_TurbineWork.setText("{:0.2f}".format(Model.turbine_work))
-        le_PumpWork.setText("{:0.2f}".format(Model.pump_work))
-        le_HeatAdded.setText("{:0.2f}".format(Model.heat_added))
+        HCF=1 if Model.SI else UC.kJperkg_to_BTUperlb
+        le_H1.setText("{:0.2f}".format(Model.state1.h*HCF))
+        le_H2.setText("{:0.2f}".format(Model.state2.h*HCF))
+        le_H3.setText("{:0.2f}".format(Model.state3.h*HCF))
+        le_H4.setText("{:0.2f}".format(Model.state4.h*HCF))
+        le_TurbineWork.setText("{:0.2f}".format(Model.turbine_work*HCF))
+        le_PumpWork.setText("{:0.2f}".format(Model.pump_work*HCF))
+        le_HeatAdded.setText("{:0.2f}".format(Model.heat_added*HCF))
         le_Efficiency.setText("{:0.2f}".format(Model.efficiency))
-        lbl_SatPropLow.setText(SatPropsIsobar(Model.p_low).txtOut)
-        lbl_SatPropHigh.setText(SatPropsIsobar(Model.p_high).txtOut)
+
+        lbl_SatPropLow.setText(SatPropsIsobar(Model.p_low, SI=Model.SI).txtOut)
+        lbl_SatPropHigh.setText(SatPropsIsobar(Model.p_high, SI=Model.SI).txtOut)
 
         #update the plot
         ax.clear()
         self.plot_cycle_TS(axObj=ax, Model=Model)
         canvas.draw()
+
+    def updateUnits(self, W, OW, Model=None):
+        """
+        Updates the units on the GUI to match choice of SI or English
+        :param W: A tuple of line edit widgets for input and output as well as the graph
+        :param OW: A list of label widgets for units
+        :param Model:  a reference to the model
+        :return:
+        """
+        #Step 0. update the outputs
+        self.outputToGUI(W,Model=Model)
+        # Update units displayed on labels
+        #Step 1. Unpack other widgets
+        lbl_TurbineInletCondition, rdo_Quality, le_PHigh, le_PLow, le_TurbineInletCondition, lbl_PHigh, lbl_PLow, lbl_H1Units, lbl_H2Units, lbl_H3Units, lbl_H4Units, lbl_TurbineWorkUnits, lbl_PumpWorkUnits, lbl_HeatAddedUnits=OW
+        #Step 2. Update pressures for PHigh and PLow
+        pCF=1/100 if Model.SI else UC.kpa_to_psi
+        le_PHigh.setText("{:0.2f}".format(pCF * Model.p_high))
+        le_PLow.setText("{:0.2f}".format(pCF * Model.p_low))
+        #Step 3. Update THigh if it is not None
+        if not rdo_Quality.isChecked():
+            T=float(le_TurbineInletCondition.text())
+            T = UC.F_to_C(T) if Model.SI else UC.C_to_F(T)
+            TUnits = "C" if Model.SI else "F"
+            le_TurbineInletCondition.setText("{:0.2f}".format(T))
+            lbl_TurbineInletCondition.setText("Turbine Inlet: THigh ({}):".format(TUnits))
+        #Step 4. Update the units for labels
+        lbl_PHigh.setText("P High ({})".format('bar' if Model.SI else 'psi'))
+        lbl_PLow.setText("P Low ({})".format('bar' if Model.SI else 'psi'))
+        HUnits="kJ/kg" if Model.SI else "BTU/lb"
+        lbl_H1Units.setText(HUnits)
+        lbl_H2Units.setText(HUnits)
+        lbl_H3Units.setText(HUnits)
+        lbl_H4Units.setText(HUnits)
+        lbl_TurbineWorkUnits.setText(HUnits)
+        lbl_PumpWorkUnits.setText(HUnits)
+        lbl_HeatAddedUnits.setText(HUnits)
 
     def print_summary(self, Model=None):
         """
@@ -209,11 +259,18 @@ class rankineView():
         :param axObj:  if None, used plt.subplot else a MatplotLib axes object.
         :return:
         """
+        SI=Model.SI
         #step 1&2:
         ts, ps, hfs, hgs, sfs, sgs, vfs, vgs= np.loadtxt('sat_water_table.txt',skiprows=1, unpack=True) #use np.loadtxt to read the saturated properties
         ax = plt.subplot() if axObj is None else axObj
 
-        ax.plot(sfs,ts, color='blue')
+        if not SI:
+            sfs*=UC.kJperkgK_to_BTUperlbR
+            sgs*=UC.kJperkgK_to_BTUperlbR
+            for i in range(len(ts)):
+                ts[i]=UC.C_to_F(ts[i])
+
+        ax.plot(sfs, ts, color='blue')
         ax.plot(sgs, ts, color='red')
 
         #step 3:  I'll just make a straight line between state3 and state3p
@@ -255,14 +312,30 @@ class rankineView():
         y1=topLine[:,1]
         y2=[Model.state3.T for s in xvals]
 
+        if not SI:
+            xvals*=UC.kJperkgK_to_BTUperlbR
+            for i in range(len(y1)):
+                y1[i]=UC.C_to_F(y1[i])
+            for i in range(len(y2)):
+                y2[i]=UC.C_to_F(y2[i])
+
         ax.plot(xvals, y1, color='darkgreen')
         ax.plot(xvals, y2, color='black')
         ax.fill_between(xvals, y1, y2, color='gray', alpha=0.5)
-        ax.plot(Model.state1.s, Model.state1.T, marker='o', markeredgecolor='k', markerfacecolor='w')
-        ax.plot(Model.state2.s, Model.state2.T, marker='o', markeredgecolor='k', markerfacecolor='w')
-        ax.plot(Model.state3.s, Model.state3.T, marker='o', markeredgecolor='k', markerfacecolor='w')
-        ax.set_xlabel(r's $\left(\frac{kJ}{kg\cdot K}\right)$', fontsize=18)  #different than plt
-        ax.set_ylabel(r'T $\left( ^{o}C \right)$', fontsize=18)  #different than plt
+
+        if SI:
+            ax.plot(Model.state1.s, Model.state1.T, marker='o', markeredgecolor='k', markerfacecolor='w')
+            ax.plot(Model.state2.s, Model.state2.T, marker='o', markeredgecolor='k', markerfacecolor='w')
+            ax.plot(Model.state3.s, Model.state3.T, marker='o', markeredgecolor='k', markerfacecolor='w')
+        else:
+            ax.plot(Model.state1.s*UC.kJperkgK_to_BTUperlbR, UC.C_to_F(Model.state1.T), marker='o', markeredgecolor='k', markerfacecolor='w')
+            ax.plot(Model.state2.s*UC.kJperkgK_to_BTUperlbR, UC.C_to_F(Model.state2.T), marker='o', markeredgecolor='k', markerfacecolor='w')
+            ax.plot(Model.state3.s*UC.kJperkgK_to_BTUperlbR, UC.C_to_F(Model.state3.T), marker='o', markeredgecolor='k', markerfacecolor='w')
+
+        tempUnits=r'$\left(^oC\right)$' if SI else r'$\left(^oF\right)$'
+        entropyUnits=r'$\left(\frac{kJ}{kg\cdot K}\right)$' if SI else r'$\left(\frac{BTU}{lb\cdot ^oR}\right)$'
+        ax.set_xlabel(r's '+entropyUnits, fontsize=18)  #different than plt
+        ax.set_ylabel(r'T '+tempUnits, fontsize=18)  #different than plt
         ax.set_title(Model.name)  #different than plt
         ax.grid(visible='both', alpha=0.5)
         ax.tick_params(axis='both', direction='in', labelsize=18)
@@ -275,12 +348,14 @@ class rankineView():
         tMax=max(max(ts),st1.T)
         ax.set_ylim(tMin,tMax*1.05)  #different than plt
 
+        energyUnits=r'$\frac{kJ}{kg}$' if SI else r'$\frac{BTU}{lb}$'
+        energyCF = 1 if SI else UC.kJperkg_to_BTUperlb
         txt= 'Summary:'
         txt+= '\n$\eta_{cycle} = $'+'{:0.2f}%'.format(Model.efficiency)
         txt+= '\n$\eta_{turbine} = $'+'{:0.2f}'.format(Model.turbine_eff)
-        txt+= '\n$W_{turbine} = $'+ '{:0.2f}'.format(Model.turbine_work)+r'$\frac{kJ}{kg}$'
-        txt+= '\n$W_{pump} = $'+'{:0.2f}'.format(Model.pump_work)+r'$\frac{kJ}{kg}$'
-        txt+= '\n$Q_{in} = $'+ '{:0.2f}'.format(Model.heat_added)+r'$\frac{kJ}{kg}$'
+        txt+= '\n$W_{turbine} = $'+'{:0.2f}'.format(Model.turbine_work*energyCF)+energyUnits
+        txt+= '\n$W_{pump} = $'+'{:0.2f}'.format(Model.pump_work*energyCF)+energyUnits
+        txt+= '\n$Q_{in} = $'+ '{:0.2f}'.format(Model.heat_added*energyCF)+energyUnits
         ax.text(sMin+0.05*(sMax-sMin), tMax, txt, ha='left', va='top', fontsize=18)  #different than plt
 
         if axObj is None:  # this allows me to show plot if not being displayed on a figure

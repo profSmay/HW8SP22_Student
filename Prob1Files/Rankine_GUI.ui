@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>1021</width>
-    <height>909</height>
+    <height>1405</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -982,6 +988,26 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>rb_SI</tabstop>
+  <tabstop>rb_English</tabstop>
+  <tabstop>le_PHigh</tabstop>
+  <tabstop>le_PLow</tabstop>
+  <tabstop>rdo_Quality</tabstop>
+  <tabstop>rdo_THigh</tabstop>
+  <tabstop>le_TurbineInletCondition</tabstop>
+  <tabstop>le_TurbineEff</tabstop>
+  <tabstop>btn_Calculate</tabstop>
+  <tabstop>le_H1</tabstop>
+  <tabstop>le_H2</tabstop>
+  <tabstop>le_H3</tabstop>
+  <tabstop>le_H4</tabstop>
+  <tabstop>le_TurbineWork</tabstop>
+  <tabstop>le_PumpWork</tabstop>
+  <tabstop>le_HeatAdded</tabstop>
+  <tabstop>le_Efficiency</tabstop>
+  <tabstop>label_2</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
